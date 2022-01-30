@@ -1,14 +1,3 @@
-/// A simple example demonstrating how to handle user input. This is
-/// a bit out of the scope of the library as it does not provide any
-/// input handling out of the box. However, it may helps some to get
-/// started.
-///
-/// This is a very simple example:
-///   * A input box always focused. Every character you type is registered
-///   here
-///   * Pressing Backspace erases a character
-///   * Pressing Enter pushes the current input in the history of previous
-///   messages
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -108,6 +97,16 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         KeyCode::Char('j') => {
                             app.selected_task += 1;
                         }
+                        KeyCode::Char('l') => {
+                            if let Some(task) = app.messages.get_mut(app.selected_task) {
+                                task.timer.stop();
+                            }
+                        }
+                        KeyCode::Char('x') => {
+                            if let Some(_) = app.messages.get_mut(app.selected_task) {
+                                app.messages.remove(app.selected_task);
+                            }
+                        }
                         _ => {}
                     },
                     InputMode::Editing => match key.code {
@@ -116,6 +115,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 description: app.input.drain(..).collect(),
                                 timer: stopwatch::Stopwatch::start_new(),
                             });
+                            app.input_mode = InputMode::Normal;
                         }
                         KeyCode::Char(c) => {
                             app.input.push(c);
@@ -215,8 +215,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, m)| {
+            let running_icon = if m.timer.is_running() {"> "} else {""};
+
             let content = vec![Spans::from(Span::raw(format!(
-                "{} - {}",
+                "{}{} - {}",
+                running_icon,
                 m.description,
                 humantime::format_duration(Duration::new(m.timer.elapsed().as_secs(), 0))
             )))];
