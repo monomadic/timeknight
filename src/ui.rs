@@ -145,7 +145,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(0)
+        .margin(1)
         .constraints(
             [
                 Constraint::Min(1),
@@ -241,8 +241,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     let messages = List::new(messages).block(
         Block::default()
-            .borders(Borders::ALL)
-            .title("♘TimeKnight")
+            .borders(Borders::NONE)
+            .title("TimeKnight")
             .style(match app.input_mode {
                 InputMode::Normal => Style::default().fg(Color::White),
                 InputMode::Editing => Style::default(),
