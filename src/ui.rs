@@ -215,7 +215,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let running_icon = if m.timer.is_running() {"> "} else {""};
+            let running_icon = if m.timer.is_running() {"▶️▶️ "} else {"❚❚ "};
 
             let content = vec![Spans::from(Span::raw(format!(
                 "{}{} - {}",
