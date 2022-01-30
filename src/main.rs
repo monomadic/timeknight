@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate log;
 
-mod args;
 mod ui;
 
 pub type Error = Box<dyn std::error::Error>;

@@ -26,8 +26,8 @@ struct App {
     input: String,
     /// Current input mode
     input_mode: InputMode,
-    /// History of recorded messages
-    messages: Vec<Task>,
+    /// History of recorded tasks
+    tasks: Vec<Task>,
     /// Currently selected task
     selected_task: usize,
 }
@@ -42,7 +42,7 @@ impl Default for App {
         App {
             input: String::new(),
             input_mode: InputMode::Normal,
-            messages: Vec::new(),
+            tasks: Vec::new(),
             selected_task: 0,
         }
     }
@@ -95,12 +95,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             }
                         }
                         KeyCode::Char('j') => {
-                            if app.selected_task < app.messages.len() - 1 {
+                            if app.selected_task < app.tasks.len() - 1 {
                                 app.selected_task += 1;
                             }
                         }
                         KeyCode::Char('l') => {
-                            if let Some(task) = app.messages.get_mut(app.selected_task) {
+                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
                                 if task.timer.is_running() {
                                     task.timer.stop();
                                 } else {
@@ -109,15 +109,15 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             }
                         }
                         KeyCode::Char('x') => {
-                            if let Some(_) = app.messages.get_mut(app.selected_task) {
-                                app.messages.remove(app.selected_task);
+                            if let Some(_) = app.tasks.get_mut(app.selected_task) {
+                                app.tasks.remove(app.selected_task);
                             }
                         }
                         _ => {}
                     },
                     InputMode::Editing => match key.code {
                         KeyCode::Enter => {
-                            app.messages.push(Task {
+                            app.tasks.push(Task {
                                 description: app.input.drain(..).collect(),
                                 timer: stopwatch::Stopwatch::start_new(),
                             });
@@ -216,8 +216,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     }
 
     // task list
-    let messages: Vec<ListItem> = app
-        .messages
+    let tasks: Vec<ListItem> = app
+        .tasks
         .iter()
         .enumerate()
         .map(|(i, m)| {
@@ -239,7 +239,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         })
         .collect();
 
-    let messages = List::new(messages).block(
+    let tasks = List::new(tasks).block(
         Block::default()
             .borders(Borders::NONE)
             .title("TimeKnight")
@@ -248,5 +248,5 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 InputMode::Editing => Style::default(),
             }),
     );
-    f.render_widget(messages, chunks[0]);
+    f.render_widget(tasks, chunks[0]);
 }
