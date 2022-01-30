@@ -12,3 +12,4 @@ tui = { version = "^0", default-features = false, features = ["crossterm"] }
 serde = "1.0.136"
 stopwatch = "0.0.7"
 unicode-width = "0.1"
+humantime = "2.1.0"

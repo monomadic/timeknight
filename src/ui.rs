@@ -24,6 +24,7 @@ use tui::{
     Frame, Terminal,
 };
 use unicode_width::UnicodeWidthStr;
+use std::time::Duration;
 
 enum InputMode {
     Normal,
@@ -37,9 +38,14 @@ struct App {
     /// Current input mode
     input_mode: InputMode,
     /// History of recorded messages
-    messages: Vec<String>,
+    messages: Vec<Task>,
     /// Currently selected task
     selected_task: usize,
+}
+
+struct Task {
+    description: String,
+    timer: stopwatch::Stopwatch,
 }
 
 impl Default for App {
@@ -84,41 +90,45 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
         terminal.draw(|f| ui(f, &app))?;
-
-        if let Event::Key(key) = event::read()? {
-            match app.input_mode {
-                InputMode::Normal => match key.code {
-                    KeyCode::Char('a') => {
-                        app.input_mode = InputMode::Editing;
-                    }
-                    KeyCode::Char('q') => {
-                        return Ok(());
-                    }
-                    KeyCode::Char('k') => {
-                        if app.selected_task > 0 {
-                            app.selected_task -= 1;
+        if crossterm::event::poll(Duration::from_millis(500))? {
+            if let Event::Key(key) = event::read()? {
+                match app.input_mode {
+                    InputMode::Normal => match key.code {
+                        KeyCode::Char('a') => {
+                            app.input_mode = InputMode::Editing;
                         }
-                    }
-                    KeyCode::Char('j') => {
-                        app.selected_task += 1;
-                    }
-                    _ => {}
-                },
-                InputMode::Editing => match key.code {
-                    KeyCode::Enter => {
-                        app.messages.push(app.input.drain(..).collect());
-                    }
-                    KeyCode::Char(c) => {
-                        app.input.push(c);
-                    }
-                    KeyCode::Backspace => {
-                        app.input.pop();
-                    }
-                    KeyCode::Esc => {
-                        app.input_mode = InputMode::Normal;
-                    }
-                    _ => {}
-                },
+                        KeyCode::Char('q') => {
+                            return Ok(());
+                        }
+                        KeyCode::Char('k') => {
+                            if app.selected_task > 0 {
+                                app.selected_task -= 1;
+                            }
+                        }
+                        KeyCode::Char('j') => {
+                            app.selected_task += 1;
+                        }
+                        _ => {}
+                    },
+                    InputMode::Editing => match key.code {
+                        KeyCode::Enter => {
+                            app.messages.push(Task {
+                                description: app.input.drain(..).collect(),
+                                timer: stopwatch::Stopwatch::start_new(),
+                            });
+                        }
+                        KeyCode::Char(c) => {
+                            app.input.push(c);
+                        }
+                        KeyCode::Backspace => {
+                            app.input.pop();
+                        }
+                        KeyCode::Esc => {
+                            app.input_mode = InputMode::Normal;
+                        }
+                        _ => {}
+                    },
+                }
             }
         }
     }
@@ -159,7 +169,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 Span::styled("a", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": add task, "),
                 Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": select task"),
+                Span::raw(": select task, "),
+                Span::styled("l", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(": start/stop task, "),
+                Span::styled("x", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(": delete task"),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
@@ -201,13 +215,21 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
+            let content = vec![Spans::from(Span::raw(format!(
+                "{} - {}",
+                m.description,
+                humantime::format_duration(Duration::new(m.timer.elapsed().as_secs(), 0))
+            )))];
             ListItem::new(content).style(match app.selected_task == i {
-                true => Style::default().fg(task_selected_color),
+                true => Style::default().fg(match app.input_mode {
+                    InputMode::Normal => task_selected_color,
+                    InputMode::Editing => Color::White,
+                }),
                 false => Style::default(),
             })
         })
         .collect();
+
     let messages = List::new(messages).block(
         Block::default()
             .borders(Borders::ALL)
