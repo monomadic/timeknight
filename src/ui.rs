@@ -1,4 +1,3 @@
-
 /// A simple example demonstrating how to handle user input. This is
 /// a bit out of the scope of the library as it does not provide any
 /// input handling out of the box. However, it may helps some to get
@@ -39,6 +38,8 @@ struct App {
     input_mode: InputMode,
     /// History of recorded messages
     messages: Vec<String>,
+    /// Currently selected task
+    selected_task: usize,
 }
 
 impl Default for App {
@@ -47,6 +48,7 @@ impl Default for App {
             input: String::new(),
             input_mode: InputMode::Normal,
             messages: Vec::new(),
+            selected_task: 0,
         }
     }
 }
@@ -92,6 +94,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     KeyCode::Char('q') => {
                         return Ok(());
                     }
+                    KeyCode::Char('k') => {
+                        if app.selected_task > 0 {
+                            app.selected_task -= 1;
+                        }
+                    }
+                    KeyCode::Char('j') => {
+                        app.selected_task += 1;
+                    }
                     _ => {}
                 },
                 InputMode::Editing => match key.code {
@@ -115,6 +125,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
+    let task_selected_color = Color::Rgb(255, 0, 200);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(0)
@@ -145,7 +157,9 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": quit, "),
                 Span::styled("a", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": add task"),
+                Span::raw(": add task, "),
+                Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(": select task"),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
@@ -188,10 +202,20 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .enumerate()
         .map(|(i, m)| {
             let content = vec![Spans::from(Span::raw(format!("{}: {}", i, m)))];
-            ListItem::new(content)
+            ListItem::new(content).style(match app.selected_task == i {
+                true => Style::default().fg(task_selected_color),
+                false => Style::default(),
+            })
         })
         .collect();
-    let messages =
-        List::new(messages).block(Block::default().borders(Borders::ALL).title("♘TimeKnight"));
+    let messages = List::new(messages).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("♘TimeKnight")
+            .style(match app.input_mode {
+                InputMode::Normal => Style::default().fg(Color::White),
+                InputMode::Editing => Style::default(),
+            }),
+    );
     f.render_widget(messages, chunks[0]);
 }
