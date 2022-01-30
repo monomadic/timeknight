@@ -99,7 +99,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                         KeyCode::Char('l') => {
                             if let Some(task) = app.messages.get_mut(app.selected_task) {
-                                task.timer.stop();
+                                if task.timer.is_running() {
+                                    task.timer.stop();
+                                } else {
+                                    task.timer.start();
+                                }
                             }
                         }
                         KeyCode::Char('x') => {
