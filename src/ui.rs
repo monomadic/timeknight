@@ -95,7 +95,9 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             }
                         }
                         KeyCode::Char('j') => {
-                            app.selected_task += 1;
+                            if app.selected_task < app.messages.len() - 1 {
+                                app.selected_task += 1;
+                            }
                         }
                         KeyCode::Char('l') => {
                             if let Some(task) = app.messages.get_mut(app.selected_task) {
@@ -219,7 +221,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         .iter()
         .enumerate()
         .map(|(i, m)| {
-            let running_icon = if m.timer.is_running() {"▶️▶️ "} else {"❚❚ "};
+            let running_icon = if m.timer.is_running() {"►► "} else {"❚❚ "};
 
             let content = vec![Spans::from(Span::raw(format!(
                 "{}{} - {}",
