@@ -5,7 +5,11 @@ pub(crate) fn run() -> Result<(), Error> {
     println!("NI Extractor v0.0.1\n");
 
     match Command::from_args() {
-        Command::Add => {},
+        Command::Add{ description } => {
+            let sw = stopwatch::Stopwatch::start_new();
+            // do something that takes some time
+            println!("{} took {}ms", description, sw.elapsed_ms());
+        },
         Command::List => {},
     }
 
@@ -13,8 +17,10 @@ pub(crate) fn run() -> Result<(), Error> {
 }
 
 #[derive(StructOpt)]
-#[structopt(name = "extract", about = "RSDK Extractor")]
+#[structopt()]
 enum Command {
-    Add,
+    Add {
+        description: String
+    },
     List,
 }
