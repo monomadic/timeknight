@@ -15,40 +15,9 @@ use tui::{
 use unicode_width::UnicodeWidthStr;
 use std::time::Duration;
 
-enum InputMode {
-    Normal,
-    Editing,
-}
+use crate::state::*;
 
-/// App holds the state of the application
-struct App {
-    /// Current value of the input box
-    input: String,
-    /// Current input mode
-    input_mode: InputMode,
-    /// History of recorded tasks
-    tasks: Vec<Task>,
-    /// Currently selected task
-    selected_task: usize,
-}
-
-struct Task {
-    description: String,
-    timer: stopwatch::Stopwatch,
-}
-
-impl Default for App {
-    fn default() -> App {
-        App {
-            input: String::new(),
-            input_mode: InputMode::Normal,
-            tasks: Vec::new(),
-            selected_task: 0,
-        }
-    }
-}
-
-pub fn run() -> Result<(), Box<dyn Error>> {
+pub fn run(app: App) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -57,7 +26,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let app = App::default();
+    // let app = App::default();
     let res = run_app(&mut terminal, app);
 
     // restore terminal
