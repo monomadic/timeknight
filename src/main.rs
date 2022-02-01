@@ -13,7 +13,8 @@ fn main() {
         .filter_level(log::LevelFilter::Info)
         .init();
     
-    let app = state::App::default();
+    // load app state from disk
+    let app = storage::load_state();
 
     match ui::run(app) {
         Ok(_) => info!("done"),
