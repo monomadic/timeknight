@@ -1,3 +1,5 @@
+use serde::{Serialize, Deserialize};
+
 /// App holds the state of the application
 pub struct App {
     /// Current value of the input box
@@ -15,9 +17,10 @@ pub enum InputMode {
     Editing,
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Task {
     pub description: String,
-    pub timer: stopwatch::Stopwatch,
+    pub timer: crate::timer::Stopwatch,
 }
 
 impl Default for App {

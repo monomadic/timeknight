@@ -17,6 +17,7 @@ use std::time::Duration;
 
 use crate::state::*;
 
+
 pub fn run(app: App) -> Result<(), Box<dyn Error>> {
     // setup terminal
     enable_raw_mode()?;
@@ -82,13 +83,16 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 app.tasks.remove(app.selected_task);
                             }
                         }
+                        KeyCode::Char('s') => {
+                            crate::storage::save_state(&app).unwrap();
+                        }
                         _ => {}
                     },
                     InputMode::Editing => match key.code {
                         KeyCode::Enter => {
                             app.tasks.push(Task {
                                 description: app.input.drain(..).collect(),
-                                timer: stopwatch::Stopwatch::start_new(),
+                                timer: crate::timer::Stopwatch::start_new(),
                             });
                             app.input_mode = InputMode::Normal;
                         }
@@ -210,7 +214,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     let tasks = List::new(tasks).block(
         Block::default()
-            .borders(Borders::NONE)
+            .borders(Borders::ALL)
             .title("TimeKnight")
             .style(match app.input_mode {
                 InputMode::Normal => Style::default().fg(Color::White),
