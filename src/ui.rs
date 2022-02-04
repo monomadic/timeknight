@@ -76,11 +76,13 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 } else {
                                     task.timer.start();
                                 }
+                                crate::storage::save_state(&app).unwrap();
                             }
                         }
                         KeyCode::Char('x') => {
                             if let Some(_) = app.tasks.get_mut(app.selected_task) {
                                 app.tasks.remove(app.selected_task);
+                                crate::storage::save_state(&app).unwrap();
                             }
                         }
                         KeyCode::Char('s') => {
@@ -95,6 +97,7 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 timer: crate::timer::Stopwatch::start_new(),
                             });
                             app.input_mode = InputMode::Normal;
+                            crate::storage::save_state(&app).unwrap();
                         }
                         KeyCode::Char(c) => {
                             app.input.push(c);

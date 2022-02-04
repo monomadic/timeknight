@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Stopwatch {
-    #[serde(with = "approx_instant", skip_serializing_if="Option::is_none")]
+    #[serde(with = "approx_instant", default, skip_serializing_if = "Option::is_none")]
 	start_time: Option<Instant>,
 	elapsed: Duration,
 }
