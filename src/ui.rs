@@ -47,7 +47,7 @@ pub fn run(app: App) -> Result<(), Box<dyn Error>> {
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<()> {
     loop {
-        terminal.draw(|f| ui(f, &app))?;
+        terminal.draw(|f| ui(f, &mut app))?;
         if crossterm::event::poll(Duration::from_millis(500))? {
             if let Event::Key(key) = event::read()? {
                 match app.input_mode {
@@ -87,6 +87,20 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         KeyCode::Char('s') => {
                             crate::storage::save_state(&app).unwrap();
                         }
+                        KeyCode::Char('?') => {
+                            // mini event loop just for the popup
+                            terminal.draw(|f| draw_popup(f))?;
+
+                            loop {
+                                if let Event::Key(key) = event::read()? {
+                                    if  key.code == KeyCode::Esc ||
+                                        key.code == KeyCode::Char('?') ||
+                                        key.code == KeyCode::Char('q') {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                         _ => {}
                     },
                     InputMode::Editing => match key.code {
@@ -109,13 +123,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         }
                         _ => {}
                     },
+
                 }
             }
         }
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let task_running_color = Color::Rgb(255, 0, 200);
     let title_text = " ♞ TimeKnight ";
     let total_time = humantime::format_duration(Duration::new(app.active_elapsed().as_secs(), 0));
@@ -242,13 +257,15 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": quit, "),
                 Span::styled("a", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": add timer, "),
+                Span::raw(": add, "),
                 Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": select timer, "),
+                Span::raw(": select, "),
                 Span::styled("l", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": start/stop timer, "),
+                Span::raw(": start/stop, "),
                 Span::styled("x", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": delete timer"),
+                Span::raw(": delete, "),
+                Span::styled("?", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(": help"),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
@@ -268,6 +285,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let help_message = Paragraph::new(text);
     f.render_widget(help_message, vertical_layout[3]);
 
+
+    // cursor
     match app.input_mode {
         InputMode::Normal =>
             // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
@@ -282,4 +301,42 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             )
         }
     }
+}
+
+
+fn draw_popup<B: Backend>(f: &mut Frame<B>) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(4)
+        .constraints([
+                Constraint::Min(1),
+        ].as_ref())
+        .split(f.size());
+    let backdrop = Block::default().style(Style::default().bg(Color::Rgb(20,20,20)));
+
+    let popup = List::new(
+            vec![
+                ListItem::new(
+                    Span::styled(" a:   add timer            j/k: select timer",
+                        Style::default().add_modifier(Modifier::BOLD))),
+                ListItem::new(
+                    Span::styled(" l:   start/stop timer     x: delete timer",
+                        Style::default().add_modifier(Modifier::BOLD))),
+                ListItem::new(
+                    Span::styled(" ?:   help                 q: quit",
+                        Style::default().add_modifier(Modifier::BOLD))),
+                
+            ]
+        )
+        .block(Block::default().title(Span::styled("Help:Keymaps",
+            Style::default().add_modifier(Modifier::BOLD)
+        )).borders(Borders::ALL))
+        .style(Style::default()
+            .fg(Color::White)
+            .bg(Color::Rgb(0,0,0))
+            .add_modifier(Modifier::BOLD));
+
+    f.render_widget(backdrop, f.size());
+    f.render_widget(tui::widgets::Clear, layout[0]);
+    f.render_widget(popup, layout[0]);
 }
