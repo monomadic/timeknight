@@ -1,4 +1,5 @@
 # TimeKnight
+![](gui.png)
 
 TimeKnight is a neat little TUI-based timer app I use in conjunction with a task tracker. It's kind
 of a secret sauce for productivity (particularly if you have ADHD or have a ridiculously overactive
@@ -23,7 +24,7 @@ my skills for time estimates of small tasks (something sorely underrated in deve
 
 Here's an example of me using TimeKnight while I code TimeKnight!
 
-!()[linux.png]
+![](linux.png)
 
 ## Installation
 
