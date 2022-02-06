@@ -134,7 +134,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
 
     // Title
     let titlebar = Block::default()
-        .title(Span::styled(" TimeKnight ", Style::default()
+        .title(Span::styled(" ♞ TimeKnight ", Style::default()
                 .fg(Color::Black)
                 .bg(Color::Blue)
                 .add_modifier(Modifier::BOLD)));
@@ -167,8 +167,10 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                             .bg(Color::White)
                             .fg(Color::Black),
                     },
-                    false => Style::default()
-                        ,
+                    false => match m.timer.is_running() {
+                        true => Style::default().fg(task_running_color),
+                        false => Style::default().fg(Color::White)
+                    }
                 }
             )
         })
@@ -176,11 +178,11 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let tasks = List::new(tasks).block(
         Block::default()
             .borders(Borders::NONE)
-            .title(" Tasks ")
+            .title(" Timers ")
             .style(match app.input_mode {
                 InputMode::Normal => Style::default().fg(Color::White),
                 InputMode::Editing => Style::default(),
-            }),
+            }.add_modifier(Modifier::BOLD)),
     );
     f.render_widget(tasks, chunks[1]);
 
@@ -191,7 +193,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             InputMode::Editing => Style::default()
         })
         .block(
-            Block::default().title(Span::styled(" Add Task ", 
+            Block::default().title(Span::styled(" Add Timer ", 
 match app.input_mode {
                 InputMode::Editing => Style::default()
                     .bg(Color::LightYellow)
