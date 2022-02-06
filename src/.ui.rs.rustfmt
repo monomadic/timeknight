@@ -125,7 +125,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
             [
                 Constraint::Length(2),
                 Constraint::Min(1),
-                Constraint::Length(3),
+                Constraint::Length(2),
                 Constraint::Length(1),
             ]
             .as_ref(),
@@ -138,6 +138,7 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 .fg(Color::Black)
                 .bg(Color::Blue)
                 .add_modifier(Modifier::BOLD)));
+        //.borders(Borders::TOP)
     f.render_widget(titlebar, chunks[0]);
 
     // Active Tasks List
@@ -244,7 +245,7 @@ match app.input_mode {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[2].x + app.input.width() as u16,
+                chunks[2].x + app.input.width() as u16 + 1,
                 // Move one line down, from the border to the input line
                 chunks[2].y + 1,
             )
