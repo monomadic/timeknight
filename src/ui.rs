@@ -3,6 +3,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use std::time::Duration;
 use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -13,10 +14,8 @@ use tui::{
     Frame, Terminal,
 };
 use unicode_width::UnicodeWidthStr;
-use std::time::Duration;
 
 use crate::state::*;
-
 
 pub fn run(app: App) -> Result<(), Box<dyn Error>> {
     // setup terminal
@@ -117,13 +116,14 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 }
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
-    let task_selected_color = Color::Rgb(255, 0, 200);
+    let task_running_color = Color::Rgb(255, 0, 200);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
         .constraints(
             [
+                Constraint::Length(2),
                 Constraint::Min(1),
                 Constraint::Length(3),
                 Constraint::Length(1),
@@ -132,16 +132,78 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
         )
         .split(f.size());
 
+    // Title
+    let titlebar = Paragraph::new(
+        Span::styled(
+            " TimeKnight ",
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::Blue)
+                .add_modifier(Modifier::BOLD)
+        )
+    );
+    let titlebar = Block::default()
+        .title(Span::styled(" TimeKnight ", Style::default()
+                .fg(Color::Black)
+                .bg(Color::Blue)
+                .add_modifier(Modifier::BOLD)));
+        //.borders(Borders::TOP)
+    f.render_widget(titlebar, chunks[0]);
+
+    // Active Tasks List
+    let tasks: Vec<ListItem> = app
+        .tasks
+        .iter()
+        .enumerate()
+        .map(|(i, m)| {
+            let running_icon = if m.timer.is_running() {
+                " ► "
+            } else {
+                "  "
+            };
+            let content = vec![Spans::from(Span::raw(format!(
+                "{}{} - {}",
+                running_icon,
+                m.description,
+                humantime::format_duration(Duration::new(m.timer.elapsed().as_secs(), 0))
+            )))];
+            ListItem::new(content).style(
+                match app.selected_task == i {
+                    true => match m.timer.is_running() {
+                        true => Style::default()
+                            .bg(task_running_color)
+                            .fg(Color::White),
+                        false => Style::default()
+                            .bg(Color::White)
+                            .fg(Color::Black),
+                    },
+                    false => Style::default()
+                        ,
+                }
+            )
+        })
+        .collect();
+    let tasks = List::new(tasks).block(
+        Block::default()
+            .borders(Borders::NONE)
+            .title(" Tasks")
+            .style(match app.input_mode {
+                InputMode::Normal => Style::default().fg(Color::White),
+                InputMode::Editing => Style::default(),
+            }),
+    );
+    f.render_widget(tasks, chunks[1]);
+
     // Add Task input
     let input = Paragraph::new(app.input.as_ref())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
-            InputMode::Editing => Style::default().fg(Color::Yellow),
+            InputMode::Editing => Style::default().bg(Color::Yellow).fg(Color::Black),
         })
-        .block(Block::default().borders(Borders::ALL).title("Add Task"));
-    f.render_widget(input, chunks[1]);
+        .block(Block::default().borders(Borders::NONE).title("Add Task"));
+    f.render_widget(input, chunks[2]);
 
-    // help text
+    // Help Text
     let (msg, style) = match app.input_mode {
         InputMode::Normal => (
             vec![
@@ -173,56 +235,21 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let mut text = Text::from(Spans::from(msg));
     text.patch_style(style);
     let help_message = Paragraph::new(text);
-    f.render_widget(help_message, chunks[2]);
+    f.render_widget(help_message, chunks[3]);
 
     match app.input_mode {
         InputMode::Normal =>
             // Hide the cursor. `Frame` does this by default, so we don't need to do anything here
             {}
-
         InputMode::Editing => {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[1].x + app.input.width() as u16 + 1,
+                chunks[2].x + app.input.width() as u16 + 1,
                 // Move one line down, from the border to the input line
-                chunks[1].y + 1,
+                chunks[2].y + 1,
             )
         }
     }
 
-    // task list
-    let tasks: Vec<ListItem> = app
-        .tasks
-        .iter()
-        .enumerate()
-        .map(|(i, m)| {
-            let running_icon = if m.timer.is_running() {"►► "} else {"  "};
-
-            let content = vec![Spans::from(Span::raw(format!(
-                "{}{} - {}",
-                running_icon,
-                m.description,
-                humantime::format_duration(Duration::new(m.timer.elapsed().as_secs(), 0))
-            )))];
-            ListItem::new(content).style(match app.selected_task == i {
-                true => Style::default().fg(match app.input_mode {
-                    InputMode::Normal => task_selected_color,
-                    InputMode::Editing => Color::White,
-                }),
-                false => Style::default(),
-            })
-        })
-        .collect();
-
-    let tasks = List::new(tasks).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title("TimeKnight")
-            .style(match app.input_mode {
-                InputMode::Normal => Style::default().fg(Color::White),
-                InputMode::Editing => Style::default(),
-            }),
-    );
-    f.render_widget(tasks, chunks[0]);
 }
