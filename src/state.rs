@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use serde::{Serialize, Deserialize};
 
 /// App holds the state of the application
@@ -31,5 +33,11 @@ impl Default for App {
             tasks: Vec::new(),
             selected_task: 0,
         }
+    }
+}
+
+impl App {
+    pub fn active_elapsed(&self) -> Duration {
+        self.tasks.iter().fold(Duration::new(0, 0), |acc, task| acc + task.timer.elapsed())
     }
 }

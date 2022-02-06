@@ -117,28 +117,59 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
 
 fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
     let task_running_color = Color::Rgb(255, 0, 200);
+    let title_text = " ♞ TimeKnight ";
+    let total_time = humantime::format_duration(Duration::new(app.active_elapsed().as_secs(), 0));
+    let time_text = format!(" Total Time: {} ", total_time);
 
-    let chunks = Layout::default()
+    let vertical_layout = Layout::default()
         .direction(Direction::Vertical)
         .margin(1)
-        .constraints(
-            [
-                Constraint::Length(2),
+        .constraints([
+                Constraint::Length(1),
                 Constraint::Min(1),
                 Constraint::Length(3),
                 Constraint::Length(1),
-            ]
-            .as_ref(),
-        )
+        ].as_ref())
         .split(f.size());
 
+    let header_layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(title_text.len() as u16),
+            Constraint::Min(1),
+            Constraint::Length(time_text.len() as u16),
+        ].as_ref())
+        .split(tui::layout::Rect {
+            x: 0,
+            y: 0,
+            width: f.size().width,
+            height: 1,
+        });
+
     // Title
-    let titlebar = Block::default()
-        .title(Span::styled(" ♞ TimeKnight ", Style::default()
+    let titlebar = Block::default().title(
+        Span::styled(title_text,
+            Style::default()
                 .fg(Color::Black)
                 .bg(Color::Blue)
-                .add_modifier(Modifier::BOLD)));
-    f.render_widget(titlebar, chunks[0]);
+                .add_modifier(Modifier::BOLD))
+    ).style(Style::default().bg(Color::Rgb(20,20,20)));
+    f.render_widget(titlebar, header_layout[0]);
+
+    // Title Spacer
+    let spacer = Block::default()
+        .style(Style::default()
+            .bg(Color::Rgb(20,20,20)));
+    f.render_widget(spacer, header_layout[1]);
+
+    // Total Time
+    let spacer = Paragraph::new(time_text)
+        .alignment(tui::layout::Alignment::Right)
+        .style(Style::default()
+            .fg(Color::Black)
+            .bg(Color::LightYellow)
+            .add_modifier(Modifier::BOLD));
+    f.render_widget(spacer, header_layout[2]);
 
     // Active Tasks List
     let tasks: Vec<ListItem> = app
@@ -157,52 +188,51 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &App) {
                 m.description,
                 humantime::format_duration(Duration::new(m.timer.elapsed().as_secs(), 0))
             )))];
-            ListItem::new(content).style(
-                match app.selected_task == i {
-                    true => match m.timer.is_running() {
-                        true => Style::default()
-                            .bg(task_running_color)
-                            .fg(Color::White),
-                        false => Style::default()
-                            .bg(Color::White)
-                            .fg(Color::Black),
-                    },
-                    false => match m.timer.is_running() {
-                        true => Style::default().fg(task_running_color),
-                        false => Style::default().fg(Color::White)
-                    }
-                }
-            )
+            ListItem::new(content).style(match app.selected_task == i {
+                true => match m.timer.is_running() {
+                    true => Style::default().bg(task_running_color).fg(Color::White),
+                    false => Style::default().bg(Color::White).fg(Color::Black),
+                },
+                false => match m.timer.is_running() {
+                    true => Style::default().fg(task_running_color),
+                    false => Style::default().fg(Color::White),
+                },
+            })
         })
         .collect();
     let tasks = List::new(tasks).block(
         Block::default()
             .borders(Borders::NONE)
             .title(" Timers ")
-            .style(match app.input_mode {
-                InputMode::Normal => Style::default().fg(Color::White),
-                InputMode::Editing => Style::default(),
-            }.add_modifier(Modifier::BOLD)),
+            .style(
+                match app.input_mode {
+                    InputMode::Normal => Style::default().fg(Color::White),
+                    InputMode::Editing => Style::default(),
+                }
+                .add_modifier(Modifier::BOLD),
+            ),
     );
-    f.render_widget(tasks, chunks[1]);
+    f.render_widget(tasks, vertical_layout[1]);
 
     // Add Task input
     let input = Paragraph::new(app.input.as_ref())
         .style(match app.input_mode {
             InputMode::Normal => Style::default(),
-            InputMode::Editing => Style::default()
+            InputMode::Editing => Style::default(),
         })
         .block(
-            Block::default().title(Span::styled(" Add Timer ", 
-match app.input_mode {
-                InputMode::Editing => Style::default()
-                    .bg(Color::LightYellow)
-                    .fg(Color::Black)
-                    .add_modifier(Modifier::BOLD),
-                InputMode::Normal => Style::default()
-}            ))
+            Block::default().title(Span::styled(
+                "  Add Timer ",
+                match app.input_mode {
+                    InputMode::Editing => Style::default()
+                        .bg(Color::LightYellow)
+                        .fg(Color::Black)
+                        .add_modifier(Modifier::BOLD),
+                    InputMode::Normal => Style::default(),
+                },
+            )),
         );
-    f.render_widget(input, chunks[2]);
+    f.render_widget(input, vertical_layout[2]);
 
     // Help Text
     let (msg, style) = match app.input_mode {
@@ -212,13 +242,13 @@ match app.input_mode {
                 Span::styled("q", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": quit, "),
                 Span::styled("a", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": add task, "),
+                Span::raw(": add timer, "),
                 Span::styled("j/k", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": select task, "),
+                Span::raw(": select timer, "),
                 Span::styled("l", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": start/stop task, "),
+                Span::raw(": start/stop timer, "),
                 Span::styled("x", Style::default().add_modifier(Modifier::BOLD)),
-                Span::raw(": delete task"),
+                Span::raw(": delete timer"),
             ],
             Style::default().add_modifier(Modifier::RAPID_BLINK),
         ),
@@ -236,7 +266,7 @@ match app.input_mode {
     let mut text = Text::from(Spans::from(msg));
     text.patch_style(style);
     let help_message = Paragraph::new(text);
-    f.render_widget(help_message, chunks[3]);
+    f.render_widget(help_message, vertical_layout[3]);
 
     match app.input_mode {
         InputMode::Normal =>
@@ -246,11 +276,10 @@ match app.input_mode {
             // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
             f.set_cursor(
                 // Put cursor past the end of the input text
-                chunks[2].x + app.input.width() as u16,
+                vertical_layout[2].x + app.input.width() as u16,
                 // Move one line down, from the border to the input line
-                chunks[2].y + 1,
+                vertical_layout[2].y + 1,
             )
         }
     }
-
 }
