@@ -79,14 +79,17 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                             }
                         }
                         KeyCode::Char('x') => {
-                            if let Some(_) = app.tasks.get_mut(app.selected_task) {
-                                app.tasks.remove(app.selected_task);
-                                crate::storage::save_state(&app).unwrap();
-                            }
+                            let _ = app.delete_selected_task();
                         }
                         KeyCode::Char('r') => {
                             if let Some(task) = app.tasks.get_mut(app.selected_task) {
                                 task.timer.reset();
+                                crate::storage::save_state(&app).unwrap();
+                            }
+                        }
+                        KeyCode::Char('C') => {
+                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
+                                task.complete().unwrap(); // todo: error management
                                 crate::storage::save_state(&app).unwrap();
                             }
                         }
