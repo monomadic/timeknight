@@ -84,6 +84,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                                 crate::storage::save_state(&app).unwrap();
                             }
                         }
+                        KeyCode::Char('r') => {
+                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
+                                task.timer.reset();
+                                crate::storage::save_state(&app).unwrap();
+                            }
+                        }
                         KeyCode::Char('s') => {
                             crate::storage::save_state(&app).unwrap();
                         }
@@ -262,6 +268,8 @@ fn ui<B: Backend>(f: &mut Frame<B>, app: &mut App) {
                 Span::raw(": select, "),
                 Span::styled("l", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": start/stop, "),
+                Span::styled("r", Style::default().add_modifier(Modifier::BOLD)),
+                Span::raw(": reset, "),
                 Span::styled("x", Style::default().add_modifier(Modifier::BOLD)),
                 Span::raw(": delete, "),
                 Span::styled("?", Style::default().add_modifier(Modifier::BOLD)),

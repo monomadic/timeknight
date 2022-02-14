@@ -6,12 +6,12 @@ use std::time::{Duration, Instant};
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Stopwatch {
-    #[serde(with = "approx_instant", default, skip_serializing_if = "Option::is_none")]
+    #[serde(with = "optional_instant", default, skip_serializing_if = "Option::is_none")]
 	start_time: Option<Instant>,
 	elapsed: Duration,
 }
 
-mod approx_instant {
+mod optional_instant {
     use std::time::{Instant, SystemTime};
     use serde::{Serialize, Serializer, Deserialize, Deserializer, de::Error};
 
@@ -73,18 +73,21 @@ impl Stopwatch {
 	pub fn start(&mut self) {
 		self.start_time = Some(Instant::now());
 	}
+
 	pub fn stop(&mut self) {
 		self.elapsed = self.elapsed();
 		self.start_time = None;
 	}
+
 	pub fn reset(&mut self) {
 		self.elapsed = Duration::from_secs(0);
 		self.start_time = None;
 	}
-	pub fn restart(&mut self) {
-		self.reset();
-		self.start();
-	}
+
+	// pub fn restart(&mut self) {
+	// 	self.reset();
+	// 	self.start();
+	// }
 
 	pub fn is_running(&self) -> bool {
 		return self.start_time.is_some();
