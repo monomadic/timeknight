@@ -55,47 +55,37 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                         KeyCode::Char('a') => {
                             app.input_mode = InputMode::Editing;
                         }
+
                         KeyCode::Char('q') => {
                             return Ok(());
                         }
+
                         KeyCode::Char('k') => {
-                            if app.selected_task > 0 {
-                                app.selected_task -= 1;
-                            }
+                            app.move_up();
                         }
+
                         KeyCode::Char('j') => {
-                            if app.selected_task < app.tasks.len() - 1 {
-                                app.selected_task += 1;
-                            }
+                            app.move_down();
                         }
+
                         KeyCode::Char('l') => {
-                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
-                                if task.timer.is_running() {
-                                    task.timer.stop();
-                                } else {
-                                    task.timer.start();
-                                }
-                                crate::storage::save_state(&app).unwrap();
-                            }
+                            let _ = app.toggle_play_pause_selected_task();
                         }
+
                         KeyCode::Char('x') => {
                             let _ = app.delete_selected_task();
                         }
+
                         KeyCode::Char('r') => {
-                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
-                                task.timer.reset();
-                                crate::storage::save_state(&app).unwrap();
-                            }
+                            let _ = app.reset_selected_task();
                         }
                         KeyCode::Char('C') => {
-                            if let Some(task) = app.tasks.get_mut(app.selected_task) {
-                                task.complete().unwrap(); // todo: error management
-                                crate::storage::save_state(&app).unwrap();
-                            }
+                            let _ = app.complete_selected_task();
                         }
                         KeyCode::Char('s') => {
-                            crate::storage::save_state(&app).unwrap();
+                            let _ = app.save();
                         }
+                        
                         KeyCode::Char('?') => {
                             // mini event loop just for the popup
                             terminal.draw(|f| draw_popup(f))?;
@@ -114,12 +104,8 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App) -> io::Result<(
                     },
                     InputMode::Editing => match key.code {
                         KeyCode::Enter => {
-                            app.tasks.push(Task {
-                                description: app.input.drain(..).collect(),
-                                timer: crate::timer::Stopwatch::start_new(),
-                            });
-                            app.input_mode = InputMode::Normal;
-                            crate::storage::save_state(&app).unwrap();
+                            let description: String = app.input.drain(..).collect();
+                            let _ = app.add_task(&description);
                         }
                         KeyCode::Char(c) => {
                             app.input.push(c);
