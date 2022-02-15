@@ -24,6 +24,14 @@ impl App {
         crate::storage::save_state(&self)
     }
 
+    /// Total time spent on all active tasks
+    pub fn active_elapsed(&self) -> Duration {
+        self.tasks
+            .iter()
+            .fold(Duration::new(0, 0), |acc, task| acc + task.timer.elapsed())
+    }
+
+    /// Save application state to disk
     pub fn save(&self) -> Result<(), crate::Error> {
         crate::storage::save_state(&self)
     }
@@ -63,8 +71,9 @@ impl App {
     }
 
     pub fn complete_selected_task(&mut self) -> Result<(), crate::Error> {
-        if let Some(task) = self.tasks.get_mut(self.selected_task) {
-            task.complete().unwrap(); // todo: fix this unwrap
+        if let Some(task) = self.tasks.get(self.selected_task) {
+            crate::storage::save_completed_task(task);
+            self.tasks.remove(self.selected_task);
             crate::storage::save_state(&self)
         } else {
             unimplemented!();
@@ -92,6 +101,7 @@ pub struct Task {
     pub timer: crate::timer::Stopwatch,
 }
 
+
 impl Task {
     pub fn complete(&mut self) -> Result<(), crate::Error> {
         // self.timer
@@ -110,10 +120,18 @@ impl Default for App {
     }
 }
 
-impl App {
-    pub fn active_elapsed(&self) -> Duration {
-        self.tasks
-            .iter()
-            .fold(Duration::new(0, 0), |acc, task| acc + task.timer.elapsed())
+#[derive(Serialize, Deserialize)]
+pub struct CompletedTask {
+    pub description: String,
+    pub total_time: Duration,
+    // completed_date
+}
+
+impl From<&Task> for CompletedTask {
+    fn from(task: &Task) -> Self {
+        CompletedTask {
+            description: task.description.clone(),
+            total_time: task.timer.elapsed(),
+        }
     }
 }
