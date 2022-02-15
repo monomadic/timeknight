@@ -3,6 +3,7 @@ use crate::state::*;
 pub(crate) fn load_state() -> Result<App, crate::Error> {
     let mut path = dirs::home_dir().expect("could not find $HOME directory");
     path.push(".timeknight");
+    path.push("active.ron");
     // if no state can be found, create default
 
     if path.exists() {
@@ -21,6 +22,10 @@ pub(crate) fn save_state(app: &App) -> Result<(), crate::Error> {
     let mut path = dirs::home_dir().expect("could not find $HOME directory");
     path.push(".timeknight");
 
+    // create `$HOME/.timeknight` dir if missing
+    std::fs::create_dir_all(&path)?;
+
+    path.push("active.ron");
     std::fs::write(path, ron::to_string(&app.tasks)?)?;
     Ok(())
 }
