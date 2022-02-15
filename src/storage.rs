@@ -26,6 +26,6 @@ pub(crate) fn save_state(app: &App) -> Result<(), crate::Error> {
     std::fs::create_dir_all(&path)?;
 
     path.push("active.ron");
-    std::fs::write(path, ron::to_string(&app.tasks)?)?;
+    std::fs::write(path, ron::ser::to_string_pretty(&app.tasks, ron::ser::PrettyConfig::new())?)?;
     Ok(())
 }
